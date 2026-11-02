@@ -1,0 +1,21 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>D3 WKWebView WebGPU probe</title></head>
+<body>
+<h1>D3 probe</h1>
+<pre id="out">running…</pre>
+<script>
+(async () => {
+  const out = document.getElementById('out');
+  const result = { userAgent: navigator.userAgent, gpuPresent: ('gpu' in navigator) };
+  try {
+    if (!('gpu' in navigator)) { result.adapter = null; result.error = 'navigator.gpu absent'; }
+    else {
+      const adapter = await navigator.gpu.requestAdapter();
+      result.adapter = adapter ? { isFallbackAdapter: adapter.isFallbackAdapter } : null;
+      result.error = adapter ? null : 'requestAdapter returned null';
+    }
+  } catch (e) { result.error = String(e && e.message || e); }
+  out.textContent = JSON.stringify(result, null, 2);
+})();
+</script>
+</body></html>
