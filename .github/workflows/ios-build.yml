@@ -1,0 +1,32 @@
+name: ios-build
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: npx cap sync ios
+      - name: Show Xcode version
+        run: xcodebuild -version
+      - name: Build unsigned app
+        run: |
+          xcodebuild -workspace ios/App/App.xcworkspace -scheme App -configuration Debug -sdk iphoneos -derivedDataPath build/derived CODE_SIGNING_ALLOWED=NO
+      - name: Package unsigned ipa
+        run: |
+          mkdir -p Payload
+          cp -r "build/derived/Build/Products/Debug-iphoneos/App.app" Payload/
+          zip -r D3Probe-unsigned.ipa Payload
+      - uses: actions/upload-artifact@v4
+        with:
+          name: D3Probe-unsigned-ipa
+          path: D3Probe-unsigned.ipa
