@@ -2,7 +2,13 @@
 <html><head><meta charset="utf-8"><title>D3 WKWebView WebGPU probe</title></head>
 <body>
 <h1>D3 probe</h1>
+<h2>WebGPU</h2>
 <pre id="out">running…</pre>
+<h2>Tiny model</h2>
+<p>Model: <code>Qwen2.5-0.5B-Instruct-q4f16_1-MLC</code> via WebLLM 0.2.87 (prebuilt list).
+Loaded at runtime from CDN on tap — no model weights are bundled in the app.</p>
+<button id="run-model" type="button">Load tiny model + generate</button>
+<pre id="model-out">not run yet — tap the button above</pre>
 <script>
 (async () => {
   const out = document.getElementById('out');
@@ -17,5 +23,70 @@
   } catch (e) { result.error = String(e && e.message || e); }
   out.textContent = JSON.stringify(result, null, 2);
 })();
+</script>
+<script type="module">
+import * as webllm from "https://esm.run/@mlc-ai/web-llm@0.2.87";
+
+const MODEL_ID = "Qwen2.5-0.5B-Instruct-q4f16_1-MLC";
+const PROMPT = "Say hello in five words";
+const btn = document.getElementById('run-model');
+const modelOut = document.getElementById('model-out');
+let engine = null;
+
+function render(result) {
+  modelOut.textContent = JSON.stringify(result, null, 2);
+}
+
+btn.addEventListener('click', async () => {
+  btn.disabled = true;
+  const result = {
+    model: MODEL_ID,
+    webllm: "0.2.87",
+    prompt: PROMPT,
+    load_ok: false,
+    load_reused: false,
+    load_ms: null,
+    load_error: null,
+    progress_last: null,
+    generate_output: null,
+    generate_ms: null,
+    generate_error: null
+  };
+  try {
+    if (engine) {
+      result.load_ok = true;
+      result.load_reused = true;
+    } else {
+      const t0 = performance.now();
+      engine = await webllm.CreateMLCEngine(MODEL_ID, {
+        initProgressCallback: (report) => {
+          result.progress_last = report && report.text ? report.text : String(report);
+          render({ ...result, status: "loading…" });
+        }
+      });
+      result.load_ms = Math.round(performance.now() - t0);
+      result.load_ok = true;
+    }
+  } catch (e) {
+    result.load_error = String(e && e.message || e);
+    render(result);
+    btn.disabled = false;
+    return;
+  }
+  try {
+    const t1 = performance.now();
+    const reply = await engine.chat.completions.create({
+      messages: [{ role: "user", content: PROMPT }],
+      max_tokens: 64
+    });
+    result.generate_ms = Math.round(performance.now() - t1);
+    const choice = reply && reply.choices && reply.choices[0];
+    result.generate_output = choice && choice.message ? choice.message.content : JSON.stringify(reply);
+  } catch (e) {
+    result.generate_error = String(e && e.message || e);
+  }
+  render(result);
+  btn.disabled = false;
+});
 </script>
 </body></html>
