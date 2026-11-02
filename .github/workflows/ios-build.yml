@@ -20,7 +20,7 @@ jobs:
         run: xcodebuild -version
       - name: Build unsigned app
         run: |
-          xcodebuild -workspace ios/App/App.xcworkspace -scheme App -configuration Debug -sdk iphoneos -derivedDataPath build/derived CODE_SIGNING_ALLOWED=NO
+          xcodebuild -project ios/App/App.xcodeproj -scheme App -configuration Debug -sdk iphoneos -derivedDataPath build/derived CODE_SIGNING_ALLOWED=NO
       - name: Package unsigned ipa
         run: |
           mkdir -p Payload
